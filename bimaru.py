@@ -41,6 +41,73 @@ class Board:
         self.positions = positions
         self.rows = rows
         self.columns = columns
+        self.complete_rows = set()
+        self.complete_cols = set()
+
+    def calculate_state(self):
+        self.possible_values = ()
+        self.possible_positions = [(col, row) for col in range(10) for row in range(10) 
+                                if self.positions[row, col] == None]
+
+        if self.completed_board():
+            return self
+
+        '''Coloca água nas posições livres-'''
+        for row, col in self.possible_positions:
+            if self.get_value(row, col) is None :
+                if self.check_if_possible_water(row, col):
+                    possible_positions.remove((row, col))
+
+        '''Ver se é uma posição de interesse, percorre e ve se tem alguma ao lado'''
+
+        for row, col in self.possible_positions:
+            i = 0
+
+        return self
+
+
+    '''Falta adicionar água se o valor for diferente'''
+    def completed_cols(self, col: int):
+        count = 0
+        for i in range(10):
+            if self.get_value(i,col) != "W" and self.get_value(i,col) != None:
+                count = count + 1
+        
+        if count == self.columns[col]:
+            return True
+        else:
+            return False
+        
+    def completed_rows(self, row: int):
+        count = 0
+        for i in range(10):
+            if self.get_value(row,i) != "W" and self.get_value(row,i) != None:
+                count = count + 1
+        
+        if count == self.rows[row]:
+            return True
+        else:
+            return False
+
+    def completed_board(self):
+        for i in range(10):
+            if self.completed_rows(i):
+                self.complete_rows.add(i)
+            if self.completed_cols(i):
+                self.complete_cols.add(i)
+
+        if len(self.complete_cols) == 10 and len(self.complete_rows) == 10:
+            return True
+        else:
+            return False
+
+    def check_if_possible_water(self, row, col):
+        #Inserts water if possible
+        #Tipo se existir um valor ao lado direito que nao é Left e assim
+        return
+
+    def position_is_empty(self, row, col):
+        return self.positions[row, col] == None
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -60,9 +127,8 @@ class Board:
         respectivamente."""
         return (self.get_value(row, col - 1), self.get_value(row, col + 1))
 
-    def get_positions_possibilities(self, row: int , col: int):
-
-        return
+    def get_position_possibilities(self, row: int , col: int):
+        return self.possible_values[row][col]
 
     @staticmethod
     def parse_instance():
@@ -76,14 +142,13 @@ class Board:
             > line = stdin.readline().split()
         """
 
-        rows = []
-        columns = []
+
         positions = np.full((10, 10), None)
 
         line = sys.stdin.readline().strip("\n")
-        rows.append(tuple(map(int, line.split("\t")[1:])))
+        rows = tuple(map(int, line.split("\t")[1:]))
         line = sys.stdin.readline().strip("\n")
-        columns.append(tuple(map(int, line.split("\t")[1:]))) 
+        columns =  tuple(map(int, line.split("\t")[1:]))
 
         num_hints = int(sys.stdin.readline().strip("\n"))
 
@@ -95,7 +160,7 @@ class Board:
             value = hint[3]
             positions[row][col] = value
         
-        return Board(positions, rows, columns)
+        return Board(positions, rows, columns).calculate_state()
 
     # TODO: outros metodos da classe
 
@@ -115,7 +180,7 @@ class Bimaru(Problem):
         possibilities = []
         for row in range(10):
             for column in range(10):
-                position_actions = state.board.get_positions_possibilities(row, col)
+                position_actions = state.board.get_position_possibilities(row, col)
                 possibilities.extend(position_actions)
         return possibilities
 
@@ -145,6 +210,8 @@ class Bimaru(Problem):
 if __name__ == "__main__":
     # TODO:
     board = Board.parse_instance()
+    print(board.complete_rows)    
+    print(board.complete_cols)
     print(board.adjacent_vertical_values(3, 3))
     print(board.adjacent_horizontal_values(3, 3))
     print(board.adjacent_vertical_values(1, 0))
