@@ -2,11 +2,13 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes já definidas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
-# 00000 Nome1
-# 00000 Nome2
+# Grupo 41:
+# 99190 Catarina Neves Santos
+# 103561 Tiago Miguel Santos Cardoso
 
 import sys
+import numpy as np 
+
 from search import (
     Problem,
     Node,
@@ -34,23 +36,33 @@ class BimaruState:
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
+    
+    def __init__(self, positions, rows, columns):
+        self.positions = positions
+        self.rows = rows
+        self.columns = columns
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        # TODO
-        pass
+        if 0 <= row < 10 and 0 <= col < 10:
+            return self.positions[row][col]
+
+    def set_value(self, row, col, value):
+        self.positions[row][col] = value
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-        # TODO
-        pass
+        return (self.get_value(row - 1, col), self.get_value(row + 1, col))
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        # TODO
-        pass
+        return (self.get_value(row, col - 1), self.get_value(row, col + 1))
+
+    def get_positions_possibilities(self, row: int , col: int):
+
+        return
 
     @staticmethod
     def parse_instance():
@@ -63,8 +75,27 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        # TODO
-        pass
+
+        rows = []
+        columns = []
+        positions = np.full((10, 10), None)
+
+        line = sys.stdin.readline().strip("\n")
+        rows.append(tuple(map(int, line.split("\t")[1:])))
+        line = sys.stdin.readline().strip("\n")
+        columns.append(tuple(map(int, line.split("\t")[1:]))) 
+
+        num_hints = int(sys.stdin.readline().strip("\n"))
+
+        for i in range(num_hints):
+            line = sys.stdin.readline().strip("\n")
+            hint = line.split()
+            row = int(hint[1])
+            col = int(hint[2])
+            value = hint[3]
+            positions[row][col] = value
+        
+        return Board(positions, rows, columns)
 
     # TODO: outros metodos da classe
 
@@ -72,22 +103,29 @@ class Board:
 class Bimaru(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        # TODO
+        state = TakuzuState(board)
+        super().__init__(state)
         pass
 
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
         # TODO
-        pass
+
+        possibilities = []
+        for row in range(10):
+            for column in range(10):
+                position_actions = state.board.get_positions_possibilities(row, col)
+                possibilities.extend(position_actions)
+        return possibilities
 
     def result(self, state: BimaruState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        # TODO
-        pass
+        (row, col, value) = action
+        return BimaruState(state.board.set_value(row, col, value))
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
@@ -106,6 +144,11 @@ class Bimaru(Problem):
 
 if __name__ == "__main__":
     # TODO:
+    board = Board.parse_instance()
+    print(board.adjacent_vertical_values(3, 3))
+    print(board.adjacent_horizontal_values(3, 3))
+    print(board.adjacent_vertical_values(1, 0))
+    print(board.adjacent_horizontal_values(1, 0))
     # Ler o ficheiro do standard input,
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
