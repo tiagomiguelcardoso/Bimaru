@@ -43,11 +43,16 @@ class Board:
         self.columns = columns
         self.complete_rows = set()
         self.complete_cols = set()
-        self.complete_ships = {'Couraçado': 1, 'Cruzadores': 2, 'Contratorpedeiros': 3, 'Submarino': 4}
+        self.possible_positions = []
+        
+        self.ships = {'Current': {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 0}
+                        , 'Max': {'Couraçado': 1, 'Cruzadores': 2, 'Contratorpedeiros': 3, 'Submarino': 4}}
+        self.parts = {'Current': {"C": 0, "T": 0, "L": 0, "B": 0 ,"R": 0, "M":0}
+                        , 'Max': {"C": 0, "T": 0, "L": 0, "B": 0 ,"R": 0, "M":0}}
 
     def calculate_state(self):
-        self.possible_values = ()
-        self.possible_positions = []
+        self.possible_values = [[[] for _ in range(10)] for _ in range(10)]
+        
 
         if self.completed_board():
             return self
@@ -57,7 +62,7 @@ class Board:
 
         self.print_board()
         print("---------------------")
-        self.calculate_ships_parts()
+        self.calculate_parts()
 
         '''Coloca água nas posições livres-'''
         print("Possible:", self.possible_positions)
@@ -68,17 +73,19 @@ class Board:
                 if self.check_if_water(row, col):
                     self.possible_positions.remove((row, col))
 
-        self.print_board()
-        print("---------------------")
         '''Ver se é uma posição de interesse, percorre e ve se tem alguma ao lado'''
 
+        '''
+        // Codigo de Teste
         for row, col in self.possible_positions:
-            i = 0
+            print("Row: ", row, col)
+            self.possible_values[row][col].extend(["C", "T", "B", "L", "R", "M", "W"])
+            print(self.possible_values[row][col])
+
+        '''
 
         return self
 
-
-    '''Falta adicionar água se o valor for diferente'''
     def completed_cols(self, col: int):
         count = 0
         empty = set()
@@ -156,7 +163,6 @@ class Board:
         else:
             return False
 
-
     def position_is_empty(self, row, col):
         return self.positions[row, col] == None
 
@@ -204,14 +210,15 @@ class Board:
     def is_boat(self, value):
         return value in ("C", "T", "M", "B", "L", "R")
 
-    def calculate_ships_parts(self):
+    def calculate_parts(self):
         for row in range(10):
             for col in range(10):
-                if self.get_value(row, col):
-                    # barocs e peças ? 
-                    return
-
-                    
+                val = self.get_value(row, col)
+                if self.is_boat(val):
+                    self.parts["Current"][val] = self.parts["Current"][val] + 1
+    
+    def set_position_possible_values():
+        b = ["C", "T", "B", "L", "R", "M", "W"]
 
     @staticmethod
     def parse_instance():
