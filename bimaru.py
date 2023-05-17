@@ -41,9 +41,12 @@ class Board:
         self.positions = positions
         self.rows = rows
         self.columns = columns
+        self.rows_data =[{"Parts": 0, "Nones": 0, "Water": 0} for _ in range(10)]
+        self.cols_data =[{"Parts": 0, "Nones": 0, "Water": 0} for _ in range(10)]
         self.complete_rows = set()
         self.complete_cols = set()
         self.possible_positions = []
+        self.boat_coordinates = []
         
         self.ships = {'Current': {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 0}
                         , 'Max': {'Couraçado': 1, 'Cruzadores': 2, 'Contratorpedeiros': 3, 'Submarino': 4}}
@@ -60,15 +63,9 @@ class Board:
         self.possible_positions = [(row, col) for row in range(10) for col in range(10) 
             if self.positions[row, col] == None]
 
-        self.print_board()
-        print("---------------------")
-        self.calculate_parts()
 
         '''Coloca água nas posições livres-'''
-        print("Possible:", self.possible_positions)
         for row, col in self.possible_positions[:]:
-            print("Possible2:", self.possible_positions)
-            print("Row:", row, "Column:", col)
             if self.get_value(row, col) is None :
                 if self.check_if_water(row, col):
                     self.possible_positions.remove((row, col))
@@ -84,46 +81,74 @@ class Board:
 
         '''
 
+        for row in range(10):
+            for col in range(10):
+                if (row, col) in self.boat_coordinates:
+                    break
+                val = self.get_value(row, col)
+                size = self.get_board_level()
+                action = self.maybe_boat_check(row, col, val ,size)
+                if type(action) == list:
+                    print("Row:", row, "Col", col)
+                    print(action)
+                    self.possible_values[row][col].append(action)
+
         return self
 
     def completed_cols(self, col: int):
-        count = 0
+        parts = 0
         empty = set()
         for i in range(10):
             value = self.get_value(i,col)
             
             if  value != "W" and value != None:
-                count = count + 1
+                parts = parts + 1
 
             if value == None:
                 empty.add(i)
         
-        if count == self.columns[col]:
+        if parts == self.columns[col]:
             for i in empty:
                 if self.get_value(i,col) == None:
                     self.set_value(i,col,"W")
+            self.cols_data[col]["Parts"] = parts
+            self.cols_data[col]["Water"] = 10 - parts
             return True
         else:
+            self.cols_data[col]["Parts"] = parts
+            self.cols_data[col]["None"] = len(empty)
+            self.cols_data[col]["Water"] = 10 - parts - len(empty)
             return False
-        
+
+
+        self.rows[rows] = 2
+        empty = 4
+        parts = 1
+
     def completed_rows(self, row: int):
-        count = 0
+        parts = 0
         empty = set()
         for i in range(10):
             value = self.get_value(row,i)
             
             if  value != "W" and value != None:
-                count = count + 1
+                parts = parts + 1
 
             if value == None:
                 empty.add(i)
 
-        if count == self.rows[row]:
+        
+        if parts == self.rows[row]:
             for i in empty:
                 if self.get_value(row,i) == None:
                     self.set_value(row,i,"W")
+            self.rows_data[row]["Parts"] = parts
+            self.rows_data[row]["Water"] = 10 - parts
             return True
         else:
+            self.rows_data[row]["Parts"] = parts
+            self.rows_data[row]["None"] = len(empty)
+            self.rows_data[row]["Water"] = 10 - parts - len(empty)
             return False
 
     def completed_board(self):
@@ -142,8 +167,6 @@ class Board:
         #Inserts water if possible
         #Tipo se existir um valor ao lado direito que nao é Left e assim
         p = self.adjacent_values(row, col)
-        print("Row:", row, "Column:", col)
-        print("Adjacents: ", p)
         if any(self.is_boat(p[i]) for i in [0, 2, 5, 7]):
             self.set_value(row, col, "W")
             return True
@@ -220,6 +243,198 @@ class Board:
     def set_position_possible_values():
         b = ["C", "T", "B", "L", "R", "M", "W"]
 
+    def maybe_boat_check(self, row, col , val, size):
+        action = [[row, col, val, size]]
+        if val == "T":
+            if (row + size - 1) <= 9:
+                if size == 4:
+                    if any(r in self.complete_rows for r in (row + 1, row + 2, row + 3)) or ((self.columns[col] - self.cols_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row + 1, col)
+                    v2 = self.get_value(row + 2, col)
+                    v3 = self.get_value(row + 3, col)
+                    if v1 in (None, "M") and  v2 in (None, "M") and v3 in (None, "B"):
+                        if v1 == None:
+                            action.append([row + 1, col, "M"])
+                        if v2 == None:
+                            action.append([row + 2, col, "M"])
+                        if v3 == None:
+                            action.append([row + 3, col, "B"])
+                        return action
+                
+                if size == 3:
+                    if any(r in self.complete_rows for r in (row + 1, row + 2)) or ((self.columns[col] - self.cols_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row + 1, col)
+                    v2 = self.get_value(row + 2, col)
+                    if v1 in (None, "M") and  v2 in (None, "B"):
+                        if v1 == None:
+                            action.append([row + 1, col, "M"])
+                        if v2 == None:
+                            action.append([row + 2, col, "B"])
+                        return action
+
+                if size == 2:
+                    if row + 1 in self.complete_rows or ((self.columns[col] - self.cols_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row + 1, col)
+                    if v1 in (None, "B"):
+                        if v1 == None:
+                            action.append([row + 1, col, "B"])
+                        return action
+            return False
+
+        elif val == "L":
+            if (col + size - 1) <= 9:
+                if size == 4:
+                    if any(c in self.complete_cols for c in (col + 1, col + 2, col + 3)) or ((self.rows[col] - self.rows_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row, col + 1)
+                    v2 = self.get_value(row, col + 2)
+                    v3 = self.get_value(row, col + 3)
+                    if v1 in (None, "M") and  v2 in (None, "M") and v3 in (None, "R"):
+                        if v1 == None:
+                            action.append([row, col + 1, "M"])
+                        if v2 == None:
+                            action.append([row, col + 2, "M"])
+                        if v3 == None:
+                            action.append([row, col + 3, "R"])
+                        return action
+                
+                if size == 3:
+                    if any(r in self.complete_cols for r in (col + 1, col + 2)) or ((self.rows[col] - self.rows_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row, col + 1)
+                    v2 = self.get_value(row, col + 2)
+                    if v1 in (None, "M") and  v2 in (None, "R"):
+                        if v1 == None:
+                            action.append([row, col + 1, "M"])
+                        if v2 == None:
+                            action.append([row, col + 2, "R"])
+                        return action
+
+                if size == 2:
+                    if col + 1 in self.complete_cols or ((self.rows[col] - self.rows_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row, col + 1)
+                    if v1 in (None, "R"):
+                        if v1 == None:
+                            action.append([row, col + 1, "R"])
+                        return action
+
+            return False
+
+        elif val == None:
+            if (row + size - 1) <= 9:
+                if size == 4:
+                    if any(r in self.complete_rows for r in (row + 1, row + 2, row + 3)) or ((self.columns[col] - self.cols_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row + 1, col)
+                    v2 = self.get_value(row + 2, col)
+                    v3 = self.get_value(row + 3, col)
+                    if v1 in (None, "M") and  v2 in (None, "M") and v3 in (None, "B"):
+                        action.append([row, col, "T"])
+                        if v1 == None:
+                            action.append([row + 1, col, "M"])
+                        if v2 == None:
+                            action.append([row + 2, col, "M"])
+                        if v3 == None:
+                            action.append([row + 3, col, "B"])
+                        return action
+                
+                if size == 3:
+                    if any(r in self.complete_rows for r in (row + 1, row + 2)) or ((self.columns[col] - self.cols_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row + 1, col)
+                    v2 = self.get_value(row + 2, col)
+                    if v1 in (None, "M") and  v2 in (None, "B"):
+                        action.append([row, col, "T"])
+                        if v1 == None:
+                            action.append([row + 1, col, "M"])
+                        if v2 == None:
+                            action.append([row + 2, col, "B"])
+                        return action
+
+                if size == 2:
+                    if row + 1 in self.complete_rows or ((self.columns[col] - self.cols_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row + 1, col)
+                    if v1 in (None, "B"):
+                        action.append([row, col, "T"])
+                        if v1 == None:
+                            action.append([row + 1, col, "B"])
+                        return action
+            if (col + size - 1) <= 9:
+                if size == 4:
+                    if any(c in self.complete_cols for c in (col + 1, col + 2, col + 3)) or ((self.rows[col] - self.rows_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row, col + 1)
+                    v2 = self.get_value(row, col + 2)
+                    v3 = self.get_value(row, col + 3)
+                    if v1 in (None, "M") and  v2 in (None, "M") and v3 in (None, "R"):
+                        action.append([row, col, "L"])
+                        if v1 == None:
+                            action.append([row, col + 1, "M"])
+                        if v2 == None:
+                            action.append([row, col + 2, "M"])
+                        if v3 == None:
+                            action.append([row, col + 3, "R"])
+                        return action
+                
+                if size == 3:
+                    if any(r in self.complete_cols for r in (col + 1, col + 2)) or ((self.rows[col] - self.rows_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row, col + 1)
+                    v2 = self.get_value(row, col + 2)
+                    if v1 in (None, "M") and  v2 in (None, "R"):
+                        action.append([row, col, "L"])
+                        if v1 == None:
+                            action.append([row, col + 1, "M"])
+                        if v2 == None:
+                            action.append([row, col + 2, "R"])
+                        return action
+
+                if size == 2:
+                    if col + 1 in self.complete_cols or ((self.rows[col] - self.rows_data[col]["Parts"]) < size):
+                        return False
+                    v1 = self.get_value(row, col + 1)
+                    if v1 in (None, "R"):
+                        action.append([row, col, "L"])
+                        if v1 == None:
+                            action.append([row, col + 1, "R"])
+                        return action
+            return False
+
+        elif val == "C":
+            return
+    
+    def get_board_level(self):
+        if self.ships["Current"]["Couraçado"] < self.ships["Max"]["Couraçado"]:
+            return 4
+        
+        elif self.ships["Current"]["Cruzadores"] < self.ships["Max"]["Cruzadores"]:
+            return 3
+
+        elif self.ships["Current"]["Contratorpedeiros"] < self.ships["Max"]["Contratorpedeiros"]:
+            return 2
+        
+        elif self.ships["Current"]["Submarino"] < self.ships["Max"]["Submarino"]:
+            return 1
+        else:
+            return 0
+    
+    def add_boat_coordinates(self, row, col, size):
+        if size == 1:
+            self.ships['Current']['Couraçado'] = 1
+        elif size == 2:
+            self.ships['Current']['Cruzadores'] = self.ships[0]['Current'] + 1
+        elif size == 3:
+            self.ships['Current']['Contratorpedeiros'] = self.ships['Current']['Contratorpedeiros'] + 1
+        elif size == 4:
+            self.ships['Current']['Submarino'] = self.ships['Current']['Submarino'] + 1
+            
+        self.boat_coordinates.append([row, col])
+
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -258,7 +473,7 @@ class Board:
 class Bimaru(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        state = TakuzuState(board)
+        state = BimaruState(board)
         super().__init__(state)
         pass
 
@@ -269,7 +484,8 @@ class Bimaru(Problem):
 
         possibilities = []
         for row in range(10):
-            for column in range(10):
+            for col in range(10):
+                print(type((state.board)))
                 position_actions = state.board.get_position_possibilities(row, col)
                 possibilities.extend(position_actions)
         return possibilities
@@ -279,14 +495,19 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        (row, col, value) = action
-        return BimaruState(state.board.set_value(row, col, value))
+        for part in action[1:]:
+            (row, col, value) = part
+            state.board.set_value(row, col, value)
+        [row, col , value, size] = action[0]
+        state.board.add_boat_coordinates(row, col, size)
+        return BimaruState(state)
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
         # TODO
+        print("Hi bithc")
         pass
 
     def h(self, node: Node):
@@ -300,6 +521,8 @@ class Bimaru(Problem):
 if __name__ == "__main__":
     # TODO:
     board = Board.parse_instance()
+    bimaru = Bimaru(board)
+    #goal_node = greedy_search(bimaru)
     print(board.print_board())
     print(len(board.possible_positions))
     # Ler o ficheiro do standard input,
