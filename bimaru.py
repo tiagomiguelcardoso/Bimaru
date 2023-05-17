@@ -43,21 +43,33 @@ class Board:
         self.columns = columns
         self.complete_rows = set()
         self.complete_cols = set()
+        self.complete_ships = {'Couraçado': 1, 'Cruzadores': 2, 'Contratorpedeiros': 3, 'Submarino': 4}
 
     def calculate_state(self):
         self.possible_values = ()
-        self.possible_positions = [(col, row) for col in range(10) for row in range(10) 
-                                if self.positions[row, col] == None]
+        self.possible_positions = []
 
         if self.completed_board():
             return self
 
-        '''Coloca água nas posições livres-'''
-        for row, col in self.possible_positions:
-            if self.get_value(row, col) is None :
-                if self.check_if_possible_water(row, col):
-                    possible_positions.remove((row, col))
+        self.possible_positions = [(row, col) for row in range(10) for col in range(10) 
+            if self.positions[row, col] == None]
 
+        self.print_board()
+        print("---------------------")
+        self.calculate_ships_parts()
+
+        '''Coloca água nas posições livres-'''
+        print("Possible:", self.possible_positions)
+        for row, col in self.possible_positions[:]:
+            print("Possible2:", self.possible_positions)
+            print("Row:", row, "Column:", col)
+            if self.get_value(row, col) is None :
+                if self.check_if_water(row, col):
+                    self.possible_positions.remove((row, col))
+
+        self.print_board()
+        print("---------------------")
         '''Ver se é uma posição de interesse, percorre e ve se tem alguma ao lado'''
 
         for row, col in self.possible_positions:
@@ -69,22 +81,40 @@ class Board:
     '''Falta adicionar água se o valor for diferente'''
     def completed_cols(self, col: int):
         count = 0
+        empty = set()
         for i in range(10):
-            if self.get_value(i,col) != "W" and self.get_value(i,col) != None:
+            value = self.get_value(i,col)
+            
+            if  value != "W" and value != None:
                 count = count + 1
+
+            if value == None:
+                empty.add(i)
         
         if count == self.columns[col]:
+            for i in empty:
+                if self.get_value(i,col) == None:
+                    self.set_value(i,col,"W")
             return True
         else:
             return False
         
     def completed_rows(self, row: int):
         count = 0
+        empty = set()
         for i in range(10):
-            if self.get_value(row,i) != "W" and self.get_value(row,i) != None:
+            value = self.get_value(row,i)
+            
+            if  value != "W" and value != None:
                 count = count + 1
-        
+
+            if value == None:
+                empty.add(i)
+
         if count == self.rows[row]:
+            for i in empty:
+                if self.get_value(row,i) == None:
+                    self.set_value(row,i,"W")
             return True
         else:
             return False
@@ -101,10 +131,31 @@ class Board:
         else:
             return False
 
-    def check_if_possible_water(self, row, col):
+    def check_if_water(self, row, col):
         #Inserts water if possible
         #Tipo se existir um valor ao lado direito que nao é Left e assim
-        return
+        p = self.adjacent_values(row, col)
+        print("Row:", row, "Column:", col)
+        print("Adjacents: ", p)
+        if any(self.is_boat(p[i]) for i in [0, 2, 5, 7]):
+            self.set_value(row, col, "W")
+            return True
+
+        elif p[1] in ("C", "B", "L", "R"):
+            self.set_value(row, col, "W")
+            return True
+        elif p[3] in ("C", "R", "T", "B"):
+            self.set_value(row, col, "W")
+            return True
+        elif p[4] in ("C", "L", "T", "B"):
+            self.set_value(row, col, "W")
+            return True
+        elif p[6] in ("C", "T", "L", "R"):
+            self.set_value(row, col, "W")
+            return True
+        else:
+            return False
+
 
     def position_is_empty(self, row, col):
         return self.positions[row, col] == None
@@ -113,6 +164,13 @@ class Board:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row < 10 and 0 <= col < 10:
             return self.positions[row][col]
+        else:
+            return None
+
+    def print_board(self):
+        for row in self.positions:
+            row_str = ' '.join([str(element) if element != None else "." for element in row])
+            print(row_str)
 
     def set_value(self, row, col, value):
         self.positions[row][col] = value
@@ -127,8 +185,33 @@ class Board:
         respectivamente."""
         return (self.get_value(row, col - 1), self.get_value(row, col + 1))
 
+    def adjacent_values(self, row: int, col: int):
+        adjacents = []
+        if 0 <= row < 10 and 0 <= col < 10:
+            adjacents.append(self.get_value(row-1,col-1))
+            adjacents.append(self.get_value(row-1,col))
+            adjacents.append(self.get_value(row-1,col+1))
+            adjacents.append(self.get_value(row,col-1))
+            adjacents.append(self.get_value(row,col+1))
+            adjacents.append(self.get_value(row+1,col-1))
+            adjacents.append(self.get_value(row+1,col))
+            adjacents.append(self.get_value(row+1,col+1))
+        return adjacents
+
     def get_position_possibilities(self, row: int , col: int):
         return self.possible_values[row][col]
+
+    def is_boat(self, value):
+        return value in ("C", "T", "M", "B", "L", "R")
+
+    def calculate_ships_parts(self):
+        for row in range(10):
+            for col in range(10):
+                if self.get_value(row, col):
+                    # barocs e peças ? 
+                    return
+
+                    
 
     @staticmethod
     def parse_instance():
@@ -210,12 +293,8 @@ class Bimaru(Problem):
 if __name__ == "__main__":
     # TODO:
     board = Board.parse_instance()
-    print(board.complete_rows)    
-    print(board.complete_cols)
-    print(board.adjacent_vertical_values(3, 3))
-    print(board.adjacent_horizontal_values(3, 3))
-    print(board.adjacent_vertical_values(1, 0))
-    print(board.adjacent_horizontal_values(1, 0))
+    print(board.print_board())
+    print(len(board.possible_positions))
     # Ler o ficheiro do standard input,
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
