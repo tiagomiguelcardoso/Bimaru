@@ -56,7 +56,6 @@ class Board:
     def calculate_state(self):
         self.possible_values = [[[] for _ in range(10)] for _ in range(10)]
         
-
         if self.completed_board():
             return self
 
@@ -89,8 +88,6 @@ class Board:
                 size = self.get_board_level()
                 action = self.maybe_boat_check(row, col, val ,size)
                 if type(action) == list:
-                    print("Row:", row, "Col", col)
-                    print(action)
                     self.possible_values[row][col].append(action)
 
         return self
@@ -485,7 +482,6 @@ class Bimaru(Problem):
         possibilities = []
         for row in range(10):
             for col in range(10):
-                print(type((state.board)))
                 position_actions = state.board.get_position_possibilities(row, col)
                 possibilities.extend(position_actions)
         return possibilities
@@ -500,15 +496,26 @@ class Bimaru(Problem):
             state.board.set_value(row, col, value)
         [row, col , value, size] = action[0]
         state.board.add_boat_coordinates(row, col, size)
-        return BimaruState(state)
+        return BimaruState(state.board.calculate_state())
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        # TODO
-        print("Hi bithc")
-        pass
+        
+        if len(state.board.complete_cols) != 10 :
+            return False
+        elif len(state.board.complete_row) != 10 :
+            return False
+        elif state.board.ships['Current']['Couraçado'] != state.board.ships['Max']['Couraçado']:
+            return False
+        elif state.board.ships['Current']['Cruzadores'] != state.board.ships['Max']['Cruzadores']:
+            return False
+        elif state.board.ships['Current']['Contratorpedeiros'] != state.board.ships['Max']['Contratorpedeiros']:
+            return False
+        elif state.board.ships['Current']['Submarino'] != state.board.ships['Max']['Submarino']:
+            return False
+        return True
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -522,9 +529,7 @@ if __name__ == "__main__":
     # TODO:
     board = Board.parse_instance()
     bimaru = Bimaru(board)
-    #goal_node = greedy_search(bimaru)
-    print(board.print_board())
-    print(len(board.possible_positions))
+    goal_node = greedy_search(bimaru)
     # Ler o ficheiro do standard input,
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
