@@ -83,14 +83,14 @@ class Board:
 
         for row in range(10):
             for col in range(10):
-                if (row, col) in self.boat_coordinates:
-                    break
-                val = self.get_value(row, col)
-                size = self.get_board_level()
-                action = self.maybe_boat_check(row, col, val ,size)
-                if type(action) == list:
-                    self.possible_values[row][col].append(action)
-
+                if[row, col] in self.boat_coordinates:
+                    pass
+                else:
+                    val = self.get_value(row, col)
+                    size = self.get_board_level()
+                    action = self.maybe_boat_check(row, col, val ,size)
+                    if type(action) == list:
+                        self.possible_values[row][col].append(action)
         return self
 
     def completed_cols(self, col: int):
@@ -549,10 +549,11 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        print("-----------------------")
+        #print("-----------------------")
         print("Actions")
         print("Level: ", state.board.get_board_level())
         print("Barcos: ", state.board.ships)
+        print("Coordenadas: ", state.board.boat_coordinates)
         state.board.print_board()
         possibilities = []
         for row in range(10):
@@ -561,6 +562,7 @@ class Bimaru(Problem):
                 possibilities.extend(position_actions)
         [print(p) for p in possibilities]
         print("-----------------------")
+
         return possibilities
 
     def result(self, state: BimaruState, action):
@@ -568,7 +570,7 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        print("-----------------------")
+        #print("-----------------------")
         print("Result")
 
         new_board = state.board.copy_board(state.board)
@@ -578,10 +580,10 @@ class Bimaru(Problem):
             new_board.set_value(row, col, value)
         [row, col, value, size] = action[0]
         new_board.add_boat_coordinates(row, col, size)
-        new_board.print_board()
-        print("-----------------------")
-        state.board.print_board()
-        print("-----------------------")
+        #new_board.print_board()
+        #print("-----------------------")
+        #state.board.print_board()
+        #print("-----------------------")
         return BimaruState(new_board.calculate_state())
 
     def goal_test(self, state: BimaruState):
