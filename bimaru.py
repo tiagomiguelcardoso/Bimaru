@@ -57,12 +57,13 @@ class Board:
     def calculate_state(self):
         self.possible_values = [[[] for _ in range(10)] for _ in range(10)]
         
+        '''Completa o board'''
         if self.completed_board():
             return self
 
+        '''Celulas Vazias'''
         self.possible_positions = [(row, col) for row in range(10) for col in range(10) 
             if self.positions[row, col] == None]
-
 
         '''Coloca água nas posições livres-'''
         for row, col in self.possible_positions[:]:
@@ -70,6 +71,7 @@ class Board:
                 if self.check_if_water(row, col):
                     self.possible_positions.remove((row, col))
 
+        '''Procura açoes para cada posiçao'''
         for row in range(10):
             for col in range(10):
                 if[row, col] in self.boat_coordinates:
@@ -175,9 +177,6 @@ class Board:
         else:
             return False
 
-    def position_is_empty(self, row, col):
-        return self.positions[row, col] == None
-
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row < 10 and 0 <= col < 10:
@@ -221,16 +220,6 @@ class Board:
 
     def is_boat(self, value):
         return value in ("C", "T", "M", "B", "L", "R")
-
-    def calculate_parts(self):
-        for row in range(10):
-            for col in range(10):
-                val = self.get_value(row, col)
-                if self.is_boat(val):
-                    self.parts["Current"][val] = self.parts["Current"][val] + 1
-    
-    def set_position_possible_values():
-        b = ["C", "T", "B", "L", "R", "M", "W"]
 
     def maybe_boat_check(self, row, col , val, size):
         if val == "T":
