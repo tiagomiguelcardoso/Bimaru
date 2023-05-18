@@ -49,7 +49,7 @@ class Board:
         self.possible_positions = []
         self.boat_coordinates = []
         
-        self.ships = {'Current': {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 4}
+        self.ships = {'Current': {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 0}
                         , 'Max': {'Couraçado': 1, 'Cruzadores': 2, 'Contratorpedeiros': 3, 'Submarino': 4}}
         self.parts = {'Current': {"C": 0, "T": 0, "L": 0, "B": 0 ,"R": 0, "M":0}
                         , 'Max': {"C": 0, "T": 0, "L": 0, "B": 0 ,"R": 0, "M":0}}
@@ -70,17 +70,6 @@ class Board:
                 if self.check_if_water(row, col):
                     self.possible_positions.remove((row, col))
 
-        '''Ver se é uma posição de interesse, percorre e ve se tem alguma ao lado'''
-
-        '''
-        // Codigo de Teste
-        for row, col in self.possible_positions:
-            print("Row: ", row, col)
-            self.possible_values[row][col].extend(["C", "T", "B", "L", "R", "M", "W"])
-            print(self.possible_values[row][col])
-
-        '''
-
         for row in range(10):
             for col in range(10):
                 if[row, col] in self.boat_coordinates:
@@ -90,7 +79,9 @@ class Board:
                     size = self.get_board_level()
                     action = self.maybe_boat_check(row, col, val ,size)
                     if type(action) == list:
-                        self.possible_values[row][col].append(action)
+                        if self.can_place_water_around(row, col, action[0][2], size):
+                            self.possible_values[row][col].append(action)
+                    
         return self
 
     def completed_cols(self, col: int):
@@ -328,7 +319,9 @@ class Board:
 
         elif val == None:
             if size == 1:
-                if ((self.columns[col] - self.cols_data[col]["Parts"]) < size) and ((self.rows[row] - self.rows_data[row]["Parts"]) < size):
+                if (col in self.complete_cols) or (row in self.complete_rows):
+                    return False
+                else:    
                     action = [[row, col, "C", size], [row, col, "C"]]
                     return action
             if (row + size - 1) <= 9:
@@ -415,9 +408,9 @@ class Board:
                         return action
             return False
 
-        #elif val == "C":
-            #self.add_boat_coordinates(row, col, 1)
-            #return False
+        elif val == "C":
+            self.add_boat_coordinates(row, col, 1)
+            return False
     
     def get_board_level(self):
         if self.ships["Current"]["Couraçado"] < self.ships["Max"]["Couraçado"]:
@@ -484,8 +477,6 @@ class Board:
             except:
                 return False
 
-
-
     def copy_board(self, board):
         new_board = Board([], [], [])
         new_board.positions = np.copy(board.positions)
@@ -550,19 +541,18 @@ class Bimaru(Problem):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
         #print("-----------------------")
-        print("Actions")
-        print("Level: ", state.board.get_board_level())
-        print("Barcos: ", state.board.ships)
-        print("Coordenadas: ", state.board.boat_coordinates)
-        state.board.print_board()
+        #print("Actions")
+        #print("Level: ", state.board.get_board_level())
+        #print("Barcos: ", state.board.ships)
+        #print("Coordenadas: ", state.board.boat_coordinates)
+        #state.board.print_board()
         possibilities = []
         for row in range(10):
             for col in range(10):
                 position_actions = state.board.get_position_possibilities(row, col)
                 possibilities.extend(position_actions)
-        [print(p) for p in possibilities]
-        print("-----------------------")
-
+        #[print(p) for p in possibilities]
+        #print("-----------------------")
         return possibilities
 
     def result(self, state: BimaruState, action):
