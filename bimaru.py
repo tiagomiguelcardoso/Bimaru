@@ -10,6 +10,8 @@ import sys
 import numpy as np 
 import cProfile
 import inspect
+import pstats
+
 
 from search import (
     Problem,
@@ -58,7 +60,6 @@ class Board:
 
     def calculate_state(self):
         self.possible_values = [[[] for _ in range(10)] for _ in range(10)]
-        
         '''Completa o board'''
         if self.completed_board():
             return self
@@ -74,6 +75,8 @@ class Board:
                     self.possible_positions.remove((row, col))
 
         '''Procura açoes para cada posiçao'''
+        size = self.get_board_level()
+
         for row in range(10):
             for col in range(10):
                 if[row, col] in self.boat_coordinates:
@@ -81,7 +84,6 @@ class Board:
                 else:
                     val = self.get_value(row, col)
 
-                    size = self.get_board_level()
                     actions = self.maybe_boat_check(row, col, val ,size)
                     if type(actions) == list:
                         for action in actions:
@@ -114,11 +116,6 @@ class Board:
             self.cols_data[col]["None"] = len(empty)
             self.cols_data[col]["Water"] = 10 - parts - len(empty)
             return False
-
-
-        self.rows[rows] = 2
-        empty = 4
-        parts = 1
 
     def completed_rows(self, row: int):
         parts = 0
@@ -521,12 +518,23 @@ if __name__ == "__main__":
     # Stop profiling
     profiler.disable()
 
-    # Print the profiling results
     profiler.print_stats()
 
+    '''
+    # Create a pstats.Stats object from the profiler
+    stats = pstats.Stats(profiler)
+    
+    # Sort the statistics by the number of calls
+    stats.sort_stats(pstats.SortKey.CALLS)
+
+    # Print the function callers with the line number
+    stats.print_callers()  # Adjust the number as per your requirement
+    '''
+    '''
     # Profile each function in bimaru.py
     functions = [m[1] for m in inspect.getmembers(bimaru) if inspect.isfunction(m[1])]
     for func in functions:
         print(f"Profiling function: {func.__name__}")
         profile_function(func)
     pass
+    '''
