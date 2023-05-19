@@ -8,7 +8,8 @@
 
 import sys
 import numpy as np 
-import time
+import cProfile
+import inspect
 
 from search import (
     Problem,
@@ -39,8 +40,6 @@ class Board:
     """Representação interna de um tabuleiro de Bimaru."""
     
     def __init__(self, positions, rows, columns):
-        print(type(positions))
-        print(positions)
         self.positions = np.copy(positions)
         self.positions_to_print = np.copy(positions)
         self.rows = rows
@@ -190,12 +189,17 @@ class Board:
             return None
 
     def print_board(self):
-        for row in self.positions:
-            row_str = ' '.join([str(element) if element != None else "." for element in row])
-            print(row_str)
+        with open("output.txt", "w") as file:
+            for row in self.positions_to_print:
+                row_str = ' '.join([str(element) if element not in (None, "w") else "." for element in row])
+                print(row_str)
+                file.write(row_str + "\n")
+
+
 
     def set_value(self, row, col, value):
         self.positions[row][col] = value
+        self.positions_to_print[row][col] = value.lower()
         '''
         if value == "W":
             self.positions[row][col] = "W"
@@ -274,8 +278,7 @@ class Board:
             self.add_boat_coordinates(row, col, 1)
             return False 
         return False
-
-    
+  
     def check_boat(self, row, col, val, size):
 
         boat_types = {1: ["C"], 
@@ -373,6 +376,7 @@ class Board:
     def copy_board(self, board):
         new_board = Board([], [], [])
         new_board.positions = np.copy(board.positions)
+        new_board.positions_to_print = np.copy(board.positions_to_print)
         new_board.rows = np.copy(board.rows)
         new_board.columns = np.copy(board.columns)
         new_board.boat_coordinates = np.copy(board.boat_coordinates).tolist()
@@ -433,19 +437,19 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        print("-----------------------")
-        print("Actions")
-        print("Level: ", state.board.get_board_level())
-        print("Barcos: ", state.board.ships)
-        print("Coordenadas: ", state.board.boat_coordinates)
-        state.board.print_board()
+        #print("-----------------------")
+        #print("Actions")
+        #print("Level: ", state.board.get_board_level())
+        #print("Barcos: ", state.board.ships)
+        #print("Coordenadas: ", state.board.boat_coordinates)
+        #state.board.print_board()
         possibilities = []
         for row in range(10):
             for col in range(10):
                 position_actions = state.board.get_position_possibilities(row, col)
                 possibilities.extend(position_actions)
-        [print(p) for p in possibilities]
-        print("-----------------------")
+        #[print(p) for p in possibilities]
+        #print("-----------------------")
 
         #time.sleep(5)
         return possibilities
@@ -489,10 +493,7 @@ class Bimaru(Problem):
         elif state.board.ships['Current']['Submarino'] != state.board.ships['Max']['Submarino']:
             return False
         
-        print("-----------------------")
-        print("Goal Test")
         state.board.print_board()
-        print("-----------------------")
         return True
 
     def h(self, node: Node):
@@ -505,11 +506,27 @@ class Bimaru(Problem):
 
 if __name__ == "__main__":
     # TODO:
+    
+
+    
+    profiler = cProfile.Profile()
+    # Start profiling
+    profiler.enable()
+
+    # Call the main function or execute the code you want to profile
     board = Board.parse_instance()
     bimaru = Bimaru(board)
     goal_node = depth_first_tree_search(bimaru)
-    # Ler o ficheiro do standard input,
-    # Usar uma técnica de procura para resolver a instância,
-    # Retirar a solução a partir do nó resultante,
-    # Imprimir para o standard output no formato indicado.
+
+    # Stop profiling
+    profiler.disable()
+
+    # Print the profiling results
+    profiler.print_stats()
+
+    # Profile each function in bimaru.py
+    functions = [m[1] for m in inspect.getmembers(bimaru) if inspect.isfunction(m[1])]
+    for func in functions:
+        print(f"Profiling function: {func.__name__}")
+        profile_function(func)
     pass
