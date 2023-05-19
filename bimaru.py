@@ -145,9 +145,9 @@ class Board:
 
     def completed_board(self):
         for i in range(10):
-            if self.completed_rows(i):
+            if i not in self.complete_rows and self.completed_rows(i):
                 self.complete_rows.add(i)
-            if self.completed_cols(i):
+            if i not in self.complete_cols and self.completed_cols(i):
                 self.complete_cols.add(i)
 
         if len(self.complete_cols) == 10 and len(self.complete_rows) == 10:
@@ -374,6 +374,8 @@ class Board:
         new_board = Board([], [], [])
         new_board.positions = np.copy(board.positions)
         new_board.positions_to_print = np.copy(board.positions_to_print)
+        new_board.complete_cols = set(item for item in board.complete_cols)
+        new_board.complete_rows = set(item for item in board.complete_rows)
         new_board.rows = np.copy(board.rows)
         new_board.columns = np.copy(board.columns)
         new_board.boat_coordinates = np.copy(board.boat_coordinates).tolist()
