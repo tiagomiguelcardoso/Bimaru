@@ -36,8 +36,6 @@ class BimaruState:
     def __lt__(self, other):
         return self.id < other.id
 
-    # TODO: outros metodos da classe
-
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
@@ -53,44 +51,33 @@ class Board:
         self.complete_cols = set()
         self.possible_positions = []
         self.boat_coordinates = []
-        
-        self.ships = {'Current': {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 0}
-                        , 'Max': {'Couraçado': 1, 'Cruzadores': 2, 'Contratorpedeiros': 3, 'Submarino': 4}}
-        self.parts = {'Current': {"C": 0, "T": 0, "L": 0, "B": 0 ,"R": 0, "M":0}
-                        , 'Max': {"C": 0, "T": 0, "L": 0, "B": 0 ,"R": 0, "M":0}}
+        self.possible_values = []
+        self.ships = {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 0}
+        self.parts = {"C": 0, "T": 0, "L": 0, "B": 0 ,"R": 0, "M":0}
 
     def calculate_state(self):
-        self.possible_values = [[[] for _ in range(10)] for _ in range(10)]
         '''Completa o board'''
-        if self.completed_board():
-            return self
+        self.completed_board()
 
         '''Celulas Vazias'''
-        self.possible_positions = [(row, col) for row in range(10) for col in range(10) 
-            if self.positions[row, col] == None]
-
-        '''Coloca água nas posições livres-'''
-        for row, col in self.possible_positions[:]:
-            if self.get_value(row, col) is None :
-                if self.check_if_water(row, col):
-                    self.possible_positions.remove((row, col))
+        self.possible_positions = [(row, col) for (row, col) in self.possible_positions if self.positions[row, col] is None and not self.check_if_water(row, col)]
 
         '''Procura açoes para cada posiçao'''
         size = self.get_board_level()
 
+
         for row in range(10):
             for col in range(10):
                 if[row, col] in self.boat_coordinates:
-                    pass
+                    continue
                 else:
                     val = self.get_value(row, col)
-
                     actions = self.maybe_boat_check(row, col, val ,size)
                     if type(actions) == list:
                         for action in actions:
                             if self.can_place_water_around(row, col, action[0][2], size):
-                                self.possible_values[row][col].append(action)
-                    
+                                self.possible_values.append(action)
+        
         return self
 
     def completed_cols(self, col: int):
@@ -151,11 +138,6 @@ class Board:
             if i not in self.complete_cols and self.completed_cols(i):
                 self.complete_cols.add(i)
 
-        if len(self.complete_cols) == 10 and len(self.complete_rows) == 10:
-            return True
-        else:
-            return False
-
     def check_if_water(self, row, col):
         #Inserts water if possible
         #Tipo se existir um valor ao lado direito que nao é Left e assim
@@ -179,21 +161,22 @@ class Board:
         else:
             return False
 
-    def get_value(self, row: int, col: int) -> str:
+    def get_value_s(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row < 10 and 0 <= col < 10:
             return self.positions[row][col]
         else:
             return None
 
+    def get_value(self, row: int, col: int) -> str:
+        """Devolve o valor na respetiva posição do tabuleiro."""
+        return self.positions[row][col]
+
     def print_board(self):
         for row in self.positions_to_print:
             row_str = ''.join([str(element) if element not in (None, "w") else "." for element in row])
             print(row_str)
         
-
-
-
     def set_value(self, row, col, value):
         self.positions[row][col] = value
         self.positions_to_print[row][col] = value.lower()
@@ -206,37 +189,22 @@ class Board:
             self.positions_to_print[row][col] = value.lower()
         '''
 
-    def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
-        """Devolve os valores imediatamente acima e abaixo,
-        respectivamente."""
-        return (self.get_value(row - 1, col), self.get_value(row + 1, col))
-
-    def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
-        """Devolve os valores imediatamente à esquerda e à direita,
-        respectivamente."""
-        return (self.get_value(row, col - 1), self.get_value(row, col + 1))
-
     def adjacent_values(self, row: int, col: int):
         adjacents = []
-        if 0 <= row < 10 and 0 <= col < 10:
-            adjacents.append(self.get_value(row-1,col-1))
-            adjacents.append(self.get_value(row-1,col))
-            adjacents.append(self.get_value(row-1,col+1))
-            adjacents.append(self.get_value(row,col-1))
-            adjacents.append(self.get_value(row,col+1))
-            adjacents.append(self.get_value(row+1,col-1))
-            adjacents.append(self.get_value(row+1,col))
-            adjacents.append(self.get_value(row+1,col+1))
+        adjacents.append(self.get_value_s(row-1,col-1))
+        adjacents.append(self.get_value_s(row-1,col))
+        adjacents.append(self.get_value_s(row-1,col+1))
+        adjacents.append(self.get_value_s(row,col-1))
+        adjacents.append(self.get_value_s(row,col+1))
+        adjacents.append(self.get_value_s(row+1,col-1))
+        adjacents.append(self.get_value_s(row+1,col))
+        adjacents.append(self.get_value_s(row+1,col+1))
         return adjacents
-
-    def get_position_possibilities(self, row: int , col: int):
-        return self.possible_values[row][col]
 
     def is_boat(self, value):
         return value in ("C", "T", "M", "B", "L", "R")
 
-    def maybe_boat_check(self, row, col , val, size):
-        
+    def maybe_boat_check(self, row, col, val, size):
         if val == "T":
             if size == 1:
                 return False
@@ -250,31 +218,29 @@ class Board:
             action = self.check_boat(row, col, "H", size)
             if len(action) != 0:
                 return [action]
-        elif val == None:
-            a = []
+
+        elif val is None:
             if size == 1:
-                if (col in self.complete_cols) or (row in self.complete_rows):
+                if col in self.complete_cols or row in self.complete_rows:
                     return False
                 else:
-                    action = [[row, col, "C", size], [row, col, "C"]]
-                    a.append(action)
-                    return a
+                    return [[[row, col, "C", size], [row, col, "C"]]]
 
             actionV = self.check_boat(row, col, "V", size)
             actionH = self.check_boat(row, col, "H", size)
-            if len(actionV) != 0:
-                a.append(actionV)
-            if len(actionH) != 0:
-                a.append(actionH)
-
-            if len(a) != 0:
-                return a   
-            return False
+            if len(actionV) != 0 and len(actionH) != 0:
+                return [actionV, actionH]
+            elif len(actionV) != 0:
+                return [actionV]
+            elif len(actionH) != 0:
+                return [actionH]
 
         elif val == "C":
             self.add_boat_coordinates(row, col, 1)
-            return False 
+            return False
+
         return False
+
   
     def check_boat(self, row, col, val, size):
 
@@ -294,7 +260,7 @@ class Board:
                     return action
             return []
 
-        if val == "H":
+        elif val == "H":
             if (col + size - 1) <= 9:
                 action = [[row, col, val, size]]
                 v = [self.get_value(row, col + i) for i in range(size)]
@@ -306,29 +272,22 @@ class Board:
             return []
 
     def get_board_level(self):
-        if self.ships["Current"]["Couraçado"] < self.ships["Max"]["Couraçado"]:
+        if self.ships["Couraçado"] < 1:
             return 4
-        
-        elif self.ships["Current"]["Cruzadores"] < self.ships["Max"]["Cruzadores"]:
+        elif self.ships["Cruzadores"] < 2:
             return 3
-
-        elif self.ships["Current"]["Contratorpedeiros"] < self.ships["Max"]["Contratorpedeiros"]:
+        elif self.ships["Contratorpedeiros"] < 3:
             return 2
-        elif self.ships["Current"]["Submarino"] < self.ships["Max"]["Submarino"]:
+        elif self.ships["Submarino"] < 4:
             return 1
         else:
             return 0
     
     def add_boat_coordinates(self, row, col, size):
-        if size == 4:
-            self.ships['Current']['Couraçado'] = 1
-        elif size == 3:
-            self.ships['Current']['Cruzadores'] = self.ships['Current']['Cruzadores'] + 1
-        elif size == 2:
-            self.ships['Current']['Contratorpedeiros'] = self.ships['Current']['Contratorpedeiros'] + 1
-        elif size == 1:
-            self.ships['Current']['Submarino'] = self.ships['Current']['Submarino'] + 1
-            
+        ship_mapping = {4: 'Couraçado', 3: 'Cruzadores', 2: 'Contratorpedeiros', 1: 'Submarino'}
+        ship_name = ship_mapping.get(size)
+        if ship_name:
+            self.ships[ship_name] = self.ships.get(ship_name, 0) + 1
         self.boat_coordinates.append([row, col])
 
     def can_place_water_around(self, row, col, value, size):
@@ -349,8 +308,7 @@ class Board:
             positions.extend([(row, col-1), (row, col+size)])
     
         # Verifica se as posições ao redor do barco são "W" ou None
-        valid = all(self.get_value(row, col) in [None, "W"] for (row, col) in positions)
-        return valid
+        return all(self.get_value_s(row, col) in [None, "W"] for (row, col) in positions)
 
     def cant_place_boat(self, tipo, place, action):
         if tipo == "V":
@@ -443,16 +401,11 @@ class Bimaru(Problem):
         #print("Barcos: ", state.board.ships)
         #print("Coordenadas: ", state.board.boat_coordinates)
         #state.board.print_board()
-        possibilities = []
-        for row in range(10):
-            for col in range(10):
-                position_actions = state.board.get_position_possibilities(row, col)
-                possibilities.extend(position_actions)
         #[print(p) for p in possibilities]
         #print("-----------------------")
 
         #time.sleep(5)
-        return possibilities
+        return state.board.possible_values
 
     def result(self, state: BimaruState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -480,17 +433,13 @@ class Bimaru(Problem):
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
         
-        if len(state.board.complete_cols) != 10 :
+        if state.board.ships['Couraçado'] != 1:
             return False
-        elif len(state.board.complete_rows) != 10 :
+        elif state.board.ships['Cruzadores'] != 2:
             return False
-        elif state.board.ships['Current']['Couraçado'] != state.board.ships['Max']['Couraçado']:
+        elif state.board.ships['Contratorpedeiros'] != 3:
             return False
-        elif state.board.ships['Current']['Cruzadores'] != state.board.ships['Max']['Cruzadores']:
-            return False
-        elif state.board.ships['Current']['Contratorpedeiros'] != state.board.ships['Max']['Contratorpedeiros']:
-            return False
-        elif state.board.ships['Current']['Submarino'] != state.board.ships['Max']['Submarino']:
+        elif state.board.ships['Submarino'] != 4:
             return False
         
         #state.board.print_board()
@@ -498,30 +447,27 @@ class Bimaru(Problem):
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        # TODO
-        pass
+        n = len(node.state.board.possible_values)
+        return  n
 
     # TODO: outros metodos da classe
 
 
 if __name__ == "__main__":
-    # TODO:
-    
-
-    
-    profiler = cProfile.Profile()
+    #profiler = cProfile.Profile()
     # Start profiling
-    profiler.enable()
+    #profiler.enable()
 
     # Call the main function or execute the code you want to profile
     board = Board.parse_instance()
+    board.possible_positions = [(i, j) for i in range(10) for j in range(10)]
     bimaru = Bimaru(board)
     goal_node = depth_first_tree_search(bimaru)
     goal_node.state.board.print_board()
     # Stop profiling
-    profiler.disable()
+    #profiler.disable()
 
-    profiler.print_stats()
+    #profiler.print_stats()
 
     '''
     # Create a pstats.Stats object from the profiler
