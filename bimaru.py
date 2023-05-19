@@ -11,6 +11,7 @@ import numpy as np
 import cProfile
 import inspect
 import pstats
+import time
 
 
 from search import (
@@ -186,11 +187,10 @@ class Board:
             return None
 
     def print_board(self):
-        with open("output.txt", "w") as file:
-            for row in self.positions_to_print:
-                row_str = ' '.join([str(element) if element not in (None, "w") else "." for element in row])
-                print(row_str)
-                file.write(row_str + "\n")
+        for row in self.positions_to_print:
+            row_str = ''.join([str(element) if element not in (None, "w") else "." for element in row])
+            print(row_str)
+        
 
 
 
@@ -380,6 +380,7 @@ class Board:
         new_board.columns = np.copy(board.columns)
         new_board.boat_coordinates = np.copy(board.boat_coordinates).tolist()
         new_board.ships = self.deep_copy_dict(board.ships)
+        new_board.possible_positions = np.copy(board.possible_positions)
         return new_board
 
     def deep_copy_dict(self, original_dict):
@@ -492,7 +493,7 @@ class Bimaru(Problem):
         elif state.board.ships['Current']['Submarino'] != state.board.ships['Max']['Submarino']:
             return False
         
-        state.board.print_board()
+        #state.board.print_board()
         return True
 
     def h(self, node: Node):
@@ -516,7 +517,7 @@ if __name__ == "__main__":
     board = Board.parse_instance()
     bimaru = Bimaru(board)
     goal_node = depth_first_tree_search(bimaru)
-
+    goal_node.state.board.print_board()
     # Stop profiling
     profiler.disable()
 
