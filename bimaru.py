@@ -11,7 +11,7 @@ import numpy as np
 #import cProfile
 #import inspect
 #import pstats
-#import time
+import time
 
 
 from search import (
@@ -49,7 +49,7 @@ class Board:
         self.cols_data =[{"Parts": 0, "Nones": 0, "Water": 0} for _ in range(10)]
         self.complete_rows = set()
         self.complete_cols = set()
-        self.possible_positions = []
+        self.empty_positions = []
         self.boat_coordinates = []
         self.possible_values = []
         self.ships = {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 0}
@@ -60,7 +60,7 @@ class Board:
         self.completed_board()
 
         '''Celulas Vazias'''
-        self.possible_positions = [(row, col) for (row, col) in self.possible_positions if self.positions[row, col] is None and not self.check_if_water(row, col)]
+        self.empty_positions = [(row, col) for (row, col) in self.empty_positions if self.positions[row, col] is None and not self.check_if_water(row, col)]
 
         '''Procura açoes para cada posiçao'''
         size = self.get_board_level()
@@ -339,7 +339,7 @@ class Board:
         new_board.columns = np.copy(board.columns)
         new_board.boat_coordinates = np.copy(board.boat_coordinates).tolist()
         new_board.ships = self.deep_copy_dict(board.ships)
-        new_board.possible_positions = np.copy(board.possible_positions)
+        new_board.empty_positions = np.copy(board.empty_positions)
         return new_board
 
     def deep_copy_dict(self, original_dict):
@@ -461,7 +461,7 @@ if __name__ == "__main__":
 
     # Call the main function or execute the code you want to profile
     board = Board.parse_instance()
-    board.possible_positions = [(i, j) for i in range(10) for j in range(10)]
+    board.empty_positions = [(i, j) for i in range(10) for j in range(10)]
     bimaru = Bimaru(board)
     goal_node = depth_first_tree_search(bimaru)
     goal_node.state.board.print_board()
