@@ -8,10 +8,10 @@
 
 import sys
 import numpy as np 
-import cProfile
-import inspect
-import pstats
-import time
+#import cProfile
+#import inspect
+#import pstats
+#import time
 
 
 from search import (
@@ -66,8 +66,9 @@ class Board:
         size = self.get_board_level()
 
 
-        for row in range(10):
-            for col in range(10):
+        occupied_positions = [(i, j) for i in range(10) for j in range(10) if self.get_value(i, j) != "W"]
+
+        for (row, col) in occupied_positions:
                 if[row, col] in self.boat_coordinates:
                     continue
                 else:
