@@ -8,7 +8,7 @@
 
 import sys
 import numpy as np 
-import cProfile
+#import cProfile
 
 from search import (
     Problem,
@@ -52,27 +52,33 @@ class Board:
         self.ships = {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 0}
 
     def calculate_state(self):
+        '''Procura açoes para cada posiçao'''
+        size = self.get_board_level()
+
         '''Completa o board caso uma linha/colunas ja esteja cheia de parts'''
         self.completed_board()
 
         '''Verifica que celulas vazias são agua'''
         self.empty_positions = [(row, col) for (row, col) in self.empty_positions if self.positions[row, col] is None and not self.check_if_water(row, col)]
 
-        '''Procura açoes para cada posiçao'''
-        size = self.get_board_level()
-
         '''Vai a todas as celulas que podem ser ocupadas e ve se um barco pode ser colocado ali'''
+
         for [row, col] in self.occupied_positions:
                 if[row, col] in self.boat_coordinates:
                     continue
                 else:
                     actions = self.maybe_boat_check(row, col, size)
-                    if type(actions) is list:
+                    if actions is not False:
                         for action in actions:
-                            if self.can_place_water_around(row, col, action[0][2], size):
-                                self.possible_values.append(action)
+                            value = action["Inicio"][2]
+                            action["Water"] = self.can_place_water_around(row, col, value, size)
+                            self.possible_values.append(action)
         return self
 
+
+    #########################
+    #    BASIC FUNCTIONS    #
+    #########################
 
     def completed_cols(self, col: int):
         '''Preenche uma col se tive o maximo de parts'''
@@ -98,28 +104,6 @@ class Board:
             if i not in self.complete_cols and self.completed_cols(i):
                 self.complete_cols.add(i)
 
-    def check_if_water(self, row, col):
-        '''Verifica se um valor é obrigatoriamente agua'''
-        p = self.adjacent_values(row, col)
-        if any(self.is_boat(p[i]) for i in [0, 2, 5, 7]):
-            self.set_value(row, col, "W")
-            return True
-
-        elif p[1] in ("C", "B", "L", "R"):
-            self.set_value(row, col, "W")
-            return True
-        elif p[3] in ("C", "R", "T", "B"):
-            self.set_value(row, col, "W")
-            return True
-        elif p[4] in ("C", "L", "T", "B"):
-            self.set_value(row, col, "W")
-            return True
-        elif p[6] in ("C", "T", "L", "R"):
-            self.set_value(row, col, "W")
-            return True
-        else:
-            return False
-
     def get_value_s(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro (verifica se está in-bounds)"""
         if 0 <= row < 10 and 0 <= col < 10:
@@ -137,6 +121,12 @@ class Board:
             row_str = ''.join([str(element) if element not in (None, "w") else "." for element in row])
             print(row_str)
         
+    def print_board_debug(self):
+        '''Dá print ao board'''
+        for row in self.positions_to_print:
+            row_str = ''.join([str(element) if element is not None else "." for element in row])
+            print(row_str)
+
     def set_value(self, row, col, value):
         '''Coloca um valor na posição'''
         self.positions[row][col] = value
@@ -164,74 +154,6 @@ class Board:
         '''Verifica de é parte de um barco'''
         return value in ("C", "T", "M", "B", "L", "R")
 
-    def maybe_boat_check(self, row, col, size):
-        '''Verifica se pode ser a ponta de um barco ('C', 'T', 'L')'''
-        val = self.get_value(row, col)
-        if val == "T":
-            if size == 1:
-                return False
-            action = self.check_boat(row, col, "V", size)
-            if len(action) != 0:
-                return [action]
-
-        elif val == "L":
-            if size == 1:
-                return False
-            action = self.check_boat(row, col, "H", size)
-            if len(action) != 0:
-                return [action]
-
-        elif val is None:
-            if size == 1:
-                if col in self.complete_cols or row in self.complete_rows:
-                    return False
-                else:
-                    return [[[row, col, "C", size], [row, col, "C"]]]
-
-            actionV = self.check_boat(row, col, "V", size)
-            actionH = self.check_boat(row, col, "H", size)
-            if len(actionV) != 0 and len(actionH) != 0:
-                return [actionV, actionH]
-            elif len(actionV) != 0:
-                return [actionV]
-            elif len(actionH) != 0:
-                return [actionH]
-
-        elif val == "C":
-            self.add_boat_coordinates(row, col, 1)
-            return False
-
-        return False
-
-    def check_boat(self, row, col, val, size):
-        '''Verifica se o barco pode ser de facto colocado ali'''
-        boat_types = {1: ["C"], 
-            2:{"V":["T", "B"], "H": ["L", "R"]}, 
-            3:{"V":["T", "M","B"], "H": ["L", "M", "R"]},
-            4:{"V":["T", "M", "M", "B"], "H": ["L", "M", "M", "R"]}}
-
-        if val == "V":
-            if (row + size - 1) <= 9:
-                action = [[row, col, val, size]]
-                v = [self.get_value(row + i, col) for i in range(size)]
-                if all(v[p] in (None, boat_types[size]["V"][p]) for p in range(size)):
-                    [action.append([row + p, col, boat_types[size]["V"][p]]) for p in range(size) if v[p] == None]
-                    if self.cant_place_boat("V", col, action):
-                        return []
-                    return action
-            return []
-
-        elif val == "H":
-            if (col + size - 1) <= 9:
-                action = [[row, col, val, size]]
-                v = [self.get_value(row, col + i) for i in range(size)]
-                if all(v[p] in (None, boat_types[size]["H"][p]) for p in range(size)):
-                    [action.append([row, col+p, boat_types[size]["H"][p]]) for p in range(size) if v[p] == None]
-                    if self.cant_place_boat("H", row, action):
-                        return []
-                    return action
-            return []
-
     def get_board_level(self):
         '''Retorna o tamanho do barco que estamos à procura'''
         if self.ships["Couraçado"] < 1:
@@ -244,15 +166,97 @@ class Board:
             return 1
         else:
             return 0
-    
-    def add_boat_coordinates(self, row, col, size):
+
+    def increase_boat_count(self, row, col, size):
         '''Adiciona o barco ao self.ships e às self.boat_coordinates'''
         ship_mapping = {4: 'Couraçado', 3: 'Cruzadores', 2: 'Contratorpedeiros', 1: 'Submarino'}
         ship_name = ship_mapping.get(size)
         if ship_name:
             self.ships[ship_name] = self.ships.get(ship_name, 0) + 1
+
         self.boat_coordinates.append([row, col])
 
+    #########################
+    #     BOAT FUNCTIONS    #
+    #########################
+
+    def maybe_boat_check(self, row, col, size):
+        '''Verifica se pode ser a ponta de um barco ('C', 'T', 'L')'''
+        val = self.get_value(row, col)
+        action = {}
+        if val == "T":
+            if size == 1:
+                return False
+            action = self.check_boat(row, col, "V", size)
+            if action != False:
+                return [action]
+
+        elif val == "L":
+            if size == 1:
+                return False
+            action = self.check_boat(row, col, "H", size)
+            if action != False:
+                return [action]
+
+        elif val is None:
+            if size == 1:
+                if col in self.complete_cols or row in self.complete_rows:
+                    return False
+                else:
+                    action["Inicio"] = [row, col, "C", size]
+                    action["Parts"] = [[row, col, "C"]]
+                    return [action]
+
+            actionV = self.check_boat(row, col, "V", size)
+            actionH = self.check_boat(row, col, "H", size)
+            if actionV != False and actionH != False:
+                return [actionV, actionH]
+            elif actionV != False:
+                return [actionV]
+            elif actionH != False:
+                return [actionH]
+
+        elif val == "C":
+            self.increase_boat_count(row, col, 1)
+            return False
+
+        return False
+
+    def check_boat(self, row, col, val, size):
+        '''Verifica se o barco pode ser de facto colocado ali'''
+        boat_types = {1: ["C"], 
+            2:{"V":["T", "B"], "H": ["L", "R"]}, 
+            3:{"V":["T", "M","B"], "H": ["L", "M", "R"]},
+            4:{"V":["T", "M", "M", "B"], "H": ["L", "M", "M", "R"]}}
+
+        action = {}
+
+        if val == "V":
+            #Verifica se não sai das bounds
+            if (row + size - 1) <= 9:
+                action["Inicio"] = [row, col, val, size]
+                v = [self.get_value(row + i, col) for i in range(size)]
+                # Verifica que as posiçoes onde vao ser colocados os barcos já tem a posição ou então está vazio
+                if all(v[p] in (None, boat_types[size]["V"][p]) for p in range(size)):
+                    #Adiciona posiçoes onde vao ser colocados valores
+                    action["Parts"] = [[row + p, col, boat_types[size]["V"][p]] for p in range(size) if v[p] == None]
+                    #Verifica se há espaço suficiente para as peças que são preciso colocar
+                    if self.cant_place_boat("V", col, action):
+                        return False
+                    return action
+            return False
+
+        elif val == "H":
+            if (col + size - 1) <= 9:
+                action["Inicio"] = [row, col, val, size]
+                v = [self.get_value(row, col + i) for i in range(size)]
+                if all(v[p] in (None, boat_types[size]["H"][p]) for p in range(size)):
+                    action["Parts"] = [[row, col+p, boat_types[size]["H"][p]] for p in range(size) if v[p] == None]
+                    if self.cant_place_boat("H", row, action):
+                        return False
+                    return action
+            return False
+ 
     def can_place_water_around(self, row, col, value, size):
         '''Verifica se agua pode ser colocada à volta do barco'''
         positions = []
@@ -270,15 +274,26 @@ class Board:
                 positions.append((row-1, j))
                 positions.append((row+1, j))
             positions.extend([(row, col-1), (row, col+size)])
+
+        elif value == "C":
+            positions = []
+            positions.append((row-1,col-1))
+            positions.append((row-1,col))
+            positions.append((row-1,col+1))
+            positions.append((row,col-1))
+            positions.append((row,col+1))
+            positions.append((row+1,col-1))
+            positions.append((row+1,col))
+            positions.append((row+1,col+1))
     
         # Verifica se as posições ao redor do barco são "W" ou None
-        return all(self.get_value_s(row, col) in [None, "W"] for (row, col) in positions)
+        return [(row, col) for (row, col) in positions if self.get_value_s(row, col) is None and row in range(0, 10) and col in range(0,10)]
 
     def cant_place_boat(self, tipo, place, action):
         '''Retorna se há peças para o barco ser colocado'''
         if tipo == "V":
             try:
-                if any(r[0] in self.complete_rows for r in (action[1:])) or ((self.columns[place] - self.cols_data[place]) < (len(action)-1)):
+                if any(r[0] in self.complete_rows for r in (action["Parts"])) or ((self.columns[place] - self.cols_data[place]) < len(action["Parts"])):
                     return True
                 else:
                     return False
@@ -286,12 +301,38 @@ class Board:
                 return False
         elif tipo == "H":
             try:
-                if any(r[1] in self.complete_cols for r in (action[1:])) or ((self.rows[place] - self.rows_data[place]) < (len(action)-1)):
+                if any(r[1] in self.complete_cols for r in (action["Parts"])) or ((self.rows[place] - self.rows_data[place]) < len(action["Parts"])):
                     return True
                 else:
                     return False
             except:
                 return False
+
+    def check_if_water(self, row, col):
+        '''Verifica se um valor é obrigatoriamente agua'''
+        p = self.adjacent_values(row, col)
+        if any(self.is_boat(p[i]) for i in [0, 2, 5, 7]):
+            self.set_value(row, col, "W")
+            return True
+
+        elif p[1] in ("C", "B", "L", "R"):
+            self.set_value(row, col, "W")
+            return True
+        elif p[3] in ("C", "R", "T", "B"):
+            self.set_value(row, col, "W")
+            return True
+        elif p[4] in ("C", "L", "T", "B"):
+            self.set_value(row, col, "W")
+            return True
+        elif p[6] in ("C", "T", "L", "R"):
+            self.set_value(row, col, "W")
+            return True
+        else:
+            return False
+
+    #########################
+    #    BOARD FUNCTIONS    #
+    #########################
 
     def copy_board(self, board):
         '''Copia um board'''
@@ -387,11 +428,19 @@ class Bimaru(Problem):
 
         new_board = state.board.copy_board(state.board)
         
-        for part in action[1:]:
+        for part in action["Parts"]:
             (row, col, value) = part
             new_board.set_value(row, col, value)
-        [row, col, value, size] = action[0]
-        new_board.add_boat_coordinates(row, col, size)
+        [row, col, value, size] = action["Inicio"]
+        new_board.increase_boat_count(row, col, size)
+
+        #print(action["Water"])
+        #for (row, col) in action["Water"]:
+            #new_board.set_value(row, col, "W")
+        
+        #new_board.print_board_debug()
+        #print("------------")
+
         return BimaruState(new_board.calculate_state())
 
     def goal_test(self, state: BimaruState):
@@ -421,7 +470,7 @@ class Bimaru(Problem):
 
 if __name__ == "__main__":
     #profiler = cProfile.Profile()
-    # profiler.enable()
+    #profiler.enable()
 
     board = Board.parse_instance()
     bimaru = Bimaru(board)
