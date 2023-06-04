@@ -9,6 +9,7 @@
 import sys
 import numpy as np 
 #import cProfile
+#import time
 
 from search import (
     Problem,
@@ -32,6 +33,7 @@ class BimaruState:
         return self.id < other.id
 
 
+
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
     
@@ -47,12 +49,15 @@ class Board:
         self.occupied_positions = []
         self.boat_coordinates = []
         self.possible_values = []
+        self.level = 0
         self.ships = {'Couraçado': 0, 'Cruzadores': 0, 'Contratorpedeiros': 0, 'Submarino': 0}
 
     def calculate_state(self):
+        global c1
+        global c2
         '''Procura açoes para cada posiçao'''
         size = self.get_board_level()
-
+        self.level = size
         '''Completa o board caso uma linha/colunas ja esteja cheia de parts'''
         self.completed_board()
 
@@ -65,7 +70,18 @@ class Board:
                 actions = self.maybe_boat_check(row, col, size)
                 if actions is not False:
                     for action in actions:
-                        self.possible_values.append(action)
+                        value = action["Inicio"][2]
+                        water = self.can_place_water_around(row, col, value, size)
+                        if water["Valid"]:
+                            action["Water"] = water["Posiçoes"]
+                            self.possible_values.append(action)
+        
+        ship_mapping = {4: 'Couraçado', 3: 'Cruzadores', 2: 'Contratorpedeiros', 1: 'Submarino'}
+        ship_name = ship_mapping.get(size)
+        if ship_name:
+            #print("Máximo:", 5 - size, "Actions:", len(self.possible_values), "Postos", self.ships[ship_name])
+            if (5 - size) > (len(self.possible_values) + self.ships[ship_name]):
+                self.possible_values = []
         return self
 
 
@@ -249,7 +265,6 @@ class Board:
                         return False
                     return action
             return False
-
  
     def can_place_water_around(self, row, col, value, size):
         water = {}
@@ -282,7 +297,7 @@ class Board:
     
         # Verifica se as posições ao redor do barco são "W" ou None
         water["Posiçoes"] = [(row, col) for (row, col) in positions if self.get_value_s(row, col) is None and row in range(0, 10) and col in range(0,10)]
-        water["Valid"] = all(self.get_value_s(row, col) in [None, "W"] and row in range(0, 10) and col in range(0,10) for (row, col) in positions)
+        water["Valid"] = all(self.get_value_s(row, col) in [None, "W", "w"] for (row, col) in positions)
         return water
 
     def cant_place_boat(self, tipo, place, action):
@@ -390,8 +405,8 @@ class Board:
                 board.rows_data[row] += 1
                 board.cols_data[col] += 1
         
+        board.occupied_positions = [(row, col) for (row, col) in board.occupied_positions[:] if board.get_value(row, col) != "W"]
         board.occupied_positions = [(row, col) for (row, col) in board.occupied_positions[:] if board.positions[row, col] is not board.check_if_water(row, col)]
-
         return board.calculate_state()
 
     # TODO: outros metodos da classe
@@ -407,16 +422,26 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        #print("-----------------------")
-        #print("Actions")
-        #print("Level: ", state.board.get_board_level())
-        #print("Barcos: ", state.board.ships)
-        #print("Coordenadas: ", state.board.boat_coordinates)
-        #state.board.print_board()
-        #[print(p) for p in state.board.possible_values]
-        #print("-----------------------")
-        #time.sleep(5)
-        return state.board.possible_values
+        if False:
+            if state.board.level == 4:
+                print("-----------------------")
+                print("Actions")
+                print("Level: ", state.board.get_board_level())
+                print("Barcos: ", state.board.ships)
+                print("Coordenadas: ", state.board.boat_coordinates)
+                state.board.print_board_debug()
+                [print(p) for p in state.board.possible_values]
+                print("-----------------------")
+                time.sleep(5)
+        
+
+        possible_values = state.board.possible_values
+        if len(possible_values) >1:
+            shift_amount = np.random.randint(len(possible_values))
+            shifted_values = possible_values[shift_amount:] + possible_values[:shift_amount]
+            return shifted_values
+        else:
+            return possible_values
 
     def result(self, state: BimaruState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -432,25 +457,10 @@ class Bimaru(Problem):
             [row, col, value, size] = action["Inicio"]
             new_board.increase_boat_count(row, col, size)
 
-            water = new_board.can_place_water_around(row, col, value, size)
-            for (row, col) in water["Posiçoes"]:
+            for (row, col) in action["Water"]:
                 new_board.set_value(row, col, "W")
         
-        else:
-            for boat in action:
-                [row, col, value, size] = boat["Inicio"]
-                print(boat["Inicio"])
-                water = new_board.can_place_water_around(row, col, value, size)
-                print(water["Valid"])
 
-                for part in boat["Parts"]:
-                    (row, col, value) = part
-                    new_board.set_value(row, col, value)
-
-                for (row, col) in water["Posiçoes"]:
-                    new_board.set_value(row, col, "W")
-
-                new_board.increase_boat_count(row, col, size)
         
         #new_board.print_board_debug()
         #print("------------")
@@ -476,7 +486,7 @@ class Bimaru(Problem):
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        n = len(node.state.board.possible_values)
+        n = len(node.state.board.occupied_positions)
         return  n
 
     # TODO: outros metodos da classe
@@ -490,7 +500,6 @@ if __name__ == "__main__":
     bimaru = Bimaru(board)
     goal_node = depth_first_tree_search(bimaru)
     goal_node.state.board.print_board()
-    
     #profiler.disable()
     #profiler.print_stats()
 
